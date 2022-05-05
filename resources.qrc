@@ -1,5 +1,8 @@
 <RCC>
     <qresource prefix="/plugins/object_detector_plugin" >
-        <file>icon.png</file>
+        <file>icons/icon.png</file>
+    </qresource>
+    <qresource prefix="/plugins/object_detector_plugin" >
+        <file>icons/radar.png</file>
     </qresource>
 </RCC>
