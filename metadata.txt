@@ -5,6 +5,7 @@
 [general]
 name=Object Detector
 qgisMinimumVersion=3.0
+qgisMaximumVersion=3.99
 description=This plugin can detect objects from satellite imagery with help of modern AI
 version=0.1
 author=Skeptlk

@@ -21,10 +21,11 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QLocale, QLocale
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-from qgis.core import QgsProject, Qgis
+from qgis.core import QgsProject, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsCoordinateTransform
+from qgis.gui import QgisInterface, QgsMapToolExtent
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -36,13 +37,13 @@ import os.path
 class ObjectDetectorPlugin:
     """QGIS Plugin Implementation."""
 
-    def __init__(self, iface):
+    def __init__(self, iface: QgisInterface):
         """Constructor.
 
         :param iface: An interface instance that will be passed to this class
             which provides the hook by which you can manipulate the QGIS
             application at run time.
-        :type iface: QgsInterface
+        :type iface: QgisInterface
         """
         # Save reference to the QGIS interface
         self.iface = iface
@@ -83,18 +84,17 @@ class ObjectDetectorPlugin:
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('ObjectDetectorPlugin', message)
 
-
     def add_action(
-        self,
-        icon_path,
-        text,
-        callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        status_tip=None,
-        whats_this=None,
-        parent=None):
+            self,
+            icon_path,
+            text,
+            callback,
+            enabled_flag=True,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip=None,
+            whats_this=None,
+            parent=None):
         """Add a toolbar icon to the toolbar.
         :param icon_path: Path to the icon for this action. Can be a resource
             path (e.g. ':/plugins/foo/bar.png') or a normal file system path.
@@ -155,9 +155,122 @@ class ObjectDetectorPlugin:
             callback=self.run,
             parent=self.iface.mainWindow())
 
+        radar_icon_path = ':/plugins/object_detector_plugin/radar.png'
+        self.add_action(
+            radar_icon_path,
+            text=self.tr(u'Select an area'),
+            callback=self.set_input_extent_from_draw_on_canvas,
+            parent=self.iface.mainWindow())
+
         # will be set False in run()
         self.first_start = True
 
+    def set_input_extent_from_draw_on_canvas(self):
+        canvas = self.iface.mapCanvas()
+        if (canvas):
+            self.map_tool_previous = canvas.mapTool()
+            map_tool_extent = QgsMapToolExtent(canvas)
+            map_tool_extent.setToolName("Wtf")
+            map_tool_extent.extentChanged.connect(self.extent_drawn)
+            map_tool_extent.deactivated.connect(self.map_tool_deactivated)
+            self.map_tool_current = map_tool_extent
+            canvas.setMapTool(map_tool_extent)
+            # self.dlg.hide()
+
+    def extent_drawn(self, extent: QgsRectangle):
+        # self.dlg.show()
+        # setOutputExtent( extent, mCanvas->mapSettings().destinationCrs(), DrawOnCanvas );
+        canvas = self.iface.mapCanvas()
+        canvas.setMapTool(self.map_tool_previous)
+        self.map_tool_previous = None
+        self.set_input_extent(extent, canvas.mapSettings().destinationCrs())
+
+    def map_tool_deactivated(self):
+        # self.dlg.show()
+        self.map_tool_previous = None
+
+    def set_input_extent(self, extent: QgsRectangle, src_crs: QgsCoordinateReferenceSystem):
+        self.extent = extent
+        # probably transform crs here
+
+        # get dimensions of extent
+        decimals = 4
+        x_min = QLocale().toString(extent.xMinimum(), 'f', decimals)
+        x_max = QLocale().toString(extent.xMaximum(), 'f', decimals)
+        y_min = QLocale().toString(extent.yMinimum(), 'f', decimals)
+        y_max = QLocale().toString(extent.yMaximum(), 'f', decimals)
+        
+        self.iface.messageBar().pushMessage(
+            "Success", "Hehe2", level=Qgis.Success, duration=3)
+
+
+    # void QgsExtentWidget::setOutputExtent( const QgsRectangle &r, const QgsCoordinateReferenceSystem &srcCrs, ExtentState state )
+    # {
+    #   QgsRectangle extent;
+    #   if ( !mHasFixedOutputCrs )
+    #   {
+    #     mOutputCrs = srcCrs;
+    #     extent = r;
+    #   }
+    #   else
+    #   {
+    #     if ( mOutputCrs == srcCrs )
+    #     {
+    #       extent = r;
+    #     }
+    #     else
+    #     {
+    #       try
+    #       {
+    #         QgsCoordinateTransform ct( srcCrs, mOutputCrs, QgsProject::instance() );
+    #         ct.setBallparkTransformsAreAppropriate( true );
+    #         extent = ct.transformBoundingBox( r );
+    #       }
+    #       catch ( QgsCsException & )
+    #       {
+    #         // can't reproject
+    #         extent = r;
+    #       }
+    #     }
+    #   }
+
+    #   int decimals = 4;
+    #   switch ( mOutputCrs.mapUnits() )
+    #   {
+    #     case QgsUnitTypes::DistanceDegrees:
+    #     case QgsUnitTypes::DistanceUnknownUnit:
+    #       decimals = 9;
+    #       break;
+    #     case QgsUnitTypes::DistanceMeters:
+    #     case QgsUnitTypes::DistanceKilometers:
+    #     case QgsUnitTypes::DistanceFeet:
+    #     case QgsUnitTypes::DistanceNauticalMiles:
+    #     case QgsUnitTypes::DistanceYards:
+    #     case QgsUnitTypes::DistanceMiles:
+    #     case QgsUnitTypes::DistanceCentimeters:
+    #     case QgsUnitTypes::DistanceMillimeters:
+    #       decimals = 4;
+    #       break;
+    #   }
+    #   mXMinLineEdit->setText( QLocale().toString( extent.xMinimum(), 'f', decimals ) );
+    #   mXMaxLineEdit->setText( QLocale().toString( extent.xMaximum(), 'f', decimals ) );
+    #   mYMinLineEdit->setText( QLocale().toString( extent.yMinimum(), 'f', decimals ) );
+    #   mYMaxLineEdit->setText( QLocale().toString( extent.yMaximum(), 'f', decimals ) );
+
+    #   QString condensed = QStringLiteral( "%1,%2,%3,%4"   ).arg( QString::number( extent.xMinimum(), 'f', decimals ),
+    #                       QString::number( extent.xMaximum(), 'f', decimals ),
+    #                       QString::number( extent.yMinimum(), 'f', decimals ),
+    #                       QString::number( extent.yMaximum(), 'f', decimals ) );
+    #   condensed += QStringLiteral( " [%1]" ).arg( mOutputCrs.userFriendlyIdentifier( QgsCoordinateReferenceSystem::ShortString ) );
+    #   mCondensedLineEdit->setText( condensed );
+
+    #   mExtentState = state;
+
+    #   if ( !mIsValid )
+    #     setValid( true );
+
+    #   emit extentChanged( extent );
+    # }
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -178,7 +291,7 @@ class ObjectDetectorPlugin:
         layers = QgsProject.instance().layerTreeRoot().children()
         # Clear the contents of the comboBox from previous runs
         self.dlg.set_layers(layers)
-        
+
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
@@ -188,7 +301,7 @@ class ObjectDetectorPlugin:
             self.export_to_csv(self.dlg.filename)
             self.iface.messageBar().pushMessage(
                 "Success", "Output file written at " + self.dlg.filename,
-                level= Qgis.Success, duration=3
+                level=Qgis.Success, duration=3
             )
 
     def export_to_csv(self, filename):
