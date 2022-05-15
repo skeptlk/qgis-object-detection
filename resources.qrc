@@ -1,6 +1,0 @@
-<RCC>
-    <qresource prefix="/plugins/object_detector_plugin" >
-        <file>icon.png</file>
-        <file>radar.png</file>
-    </qresource>
-</RCC>
