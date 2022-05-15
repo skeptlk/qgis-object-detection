@@ -16,7 +16,7 @@ import unittest
 
 from qgis.PyQt.QtGui import QDialogButtonBox, QDialog
 
-from object_detector_plugin_dialog import ObjectDetectorPluginDialog
+from plugin.ui.export_layer_dialog import ObjectDetectorPluginDialog
 
 from utilities import get_qgis_app
 QGIS_APP = get_qgis_app()

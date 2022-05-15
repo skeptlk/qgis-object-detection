@@ -9,13 +9,13 @@ from qgis.PyQt.QtWidgets import QFileDialog
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'object_detector_plugin_dialog_base.ui'))
+    os.path.dirname(__file__), 'export_layer_dialog_base.ui'))
 
 
-class ObjectDetectorPluginDialog(QtWidgets.QDialog, FORM_CLASS):
+class ExportLayerDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
-        super(ObjectDetectorPluginDialog, self).__init__(parent)
+        super(ExportLayerDialog, self).__init__(parent)
         self.setupUi(self)
         self.selectFileButton.clicked.connect(self.select_output_file)
 

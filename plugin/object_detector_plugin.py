@@ -19,7 +19,7 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QLocale, QLocale
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-from qgis.core import QgsProject, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsCoordinateTransform
+from qgis.core import QgsProject, Qgis, QgsRectangle, QgsCoordinateTransform
 from qgis.gui import QgisInterface, QgsMapToolExtent
 
 from .clip_raster_adapter import ClipRasterAdapter
@@ -27,7 +27,7 @@ from .clip_raster_adapter import ClipRasterAdapter
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .object_detector_plugin_dialog import ObjectDetectorPluginDialog
+from .dialogs.export_layer_dialog import ExportLayerDialog
 import os.path
 
 
@@ -145,16 +145,14 @@ class ObjectDetectorPlugin:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-        icon_path = ':/plugins/object_detector_plugin/icon.png'
         self.add_action(
-            icon_path,
+            ':/plugins/object_detector_plugin/icon.png',
             text=self.tr(u'Detect objects'),
             callback=self.run,
             parent=self.iface.mainWindow())
 
-        radar_icon_path = ':/plugins/object_detector_plugin/radar.png'
         self.add_action(
-            radar_icon_path,
+            ':/plugins/object_detector_plugin/radar.png',
             text=self.tr(u'Select an area'),
             callback=self.set_input_extent_from_draw_on_canvas,
             parent=self.iface.mainWindow())
@@ -182,36 +180,40 @@ class ObjectDetectorPlugin:
         self.map_tool_previous = None
 
     def set_input_extent(self, extent: QgsRectangle):
-        # todo: cleanup
-        ct = QgsCoordinateTransform(self.iface.mapCanvas().mapSettings().destinationCrs(), self.iface.activeLayer().crs(), QgsProject.instance())
-        ct.setBallparkTransformsAreAppropriate( True );
+        active_layer = self.iface.activeLayer()
+        map_crs = self.iface.mapCanvas().mapSettings().destinationCrs()
+        ct = QgsCoordinateTransform(map_crs, active_layer.crs(), QgsProject.instance())
+        ct.setBallparkTransformsAreAppropriate(True)
         extent = ct.transformBoundingBox(extent)
         self.extent = extent
 
+        self.show_extent_message(extent)
+
+        # todo: check that raster layer is selected
+        res = ClipRasterAdapter.run(
+            extent,
+            active_layer.crs()
+        )
+
+        self.iface.messageBar().pushMessage(
+            "Title", "{}".format(res), level=Qgis.Success, duration=10)
+
+    def show_extent_message(self, extent: QgsRectangle):
         # get dimensions of extent
         decimals = 4
         x_min = QLocale().toString(extent.xMinimum(), 'f', decimals)
         x_max = QLocale().toString(extent.xMaximum(), 'f', decimals)
         y_min = QLocale().toString(extent.yMinimum(), 'f', decimals)
         y_max = QLocale().toString(extent.yMaximum(), 'f', decimals)
-        
+
         self.iface.messageBar().pushMessage(
             "Title",
-            "You selected extent: ({0}; {1}; {2}; {3};)".format(x_min, x_max, y_min, y_max), 
-            level=Qgis.Success, 
+            "You selected extent: ({0}; {1}; {2}; {3};)".format(
+                x_min, x_max, y_min, y_max),
+            level=Qgis.Success,
             duration=10
         )
-        
-        
-        # todo: check this is a raster layer 
-        res = ClipRasterAdapter.run(
-            extent, 
-            self.iface.activeLayer(), 
-            # self.iface.mapCanvas().mapSettings().destinationCrs().authid()
-        )
-        
-        self.iface.messageBar().pushMessage("Title", "{}".format(res), level=Qgis.Success, duration=10)
-        
+
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -226,7 +228,7 @@ class ObjectDetectorPlugin:
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
         if self.first_start == True:
             self.first_start = False
-            self.dlg = ObjectDetectorPluginDialog()
+            self.dlg = ExportLayerDialog()
 
         # Fetch the currently loaded layers
         layers = QgsProject.instance().layerTreeRoot().children()
