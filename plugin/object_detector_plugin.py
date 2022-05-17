@@ -16,10 +16,10 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QLocale, QLocale
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QLocale, QLocale, QVariant
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-from qgis.core import QgsProject, Qgis, QgsRectangle, QgsCoordinateTransform
+from qgis.core import QgsProject, Qgis, QgsRectangle, QgsCoordinateTransform, QgsVectorLayer, QgsFeature, QgsGeometry, QgsField
 from qgis.gui import QgisInterface, QgsMapToolExtent
 
 from .clip_raster_adapter import ClipRasterAdapter
@@ -181,8 +181,26 @@ class ObjectDetectorPlugin:
 
     def set_input_extent(self, extent: QgsRectangle):
         active_layer = self.iface.activeLayer()
+        
+        # make post request
+        vl = QgsVectorLayer("Polygon", "temp", "memory")
+        pr = vl.dataProvider()
+        pr.addAttributes([QgsField("id", QVariant.Int)])
+        vl.updateFields()
+
+        f = QgsFeature()
+        
+        wkt = extent.asWktPolygon()
+        f.setGeometry(QgsGeometry.fromWkt(wkt))
+        f.setAttributes([1])
+
+        pr.addFeature(f)
+        vl.updateExtents()
+        QgsProject.instance().addMapLayer(vl)
+        
         map_crs = self.iface.mapCanvas().mapSettings().destinationCrs()
-        ct = QgsCoordinateTransform(map_crs, active_layer.crs(), QgsProject.instance())
+        ct = QgsCoordinateTransform(
+            map_crs, active_layer.crs(), QgsProject.instance())
         ct.setBallparkTransformsAreAppropriate(True)
         extent = ct.transformBoundingBox(extent)
         self.extent = extent
@@ -192,7 +210,7 @@ class ObjectDetectorPlugin:
         # todo: check that raster layer is selected
         res = ClipRasterAdapter.run(
             extent,
-            active_layer.crs()
+            active_layer
         )
 
         self.iface.messageBar().pushMessage(
@@ -200,20 +218,12 @@ class ObjectDetectorPlugin:
 
     def show_extent_message(self, extent: QgsRectangle):
         # get dimensions of extent
-        decimals = 4
-        x_min = QLocale().toString(extent.xMinimum(), 'f', decimals)
-        x_max = QLocale().toString(extent.xMaximum(), 'f', decimals)
-        y_min = QLocale().toString(extent.yMinimum(), 'f', decimals)
-        y_max = QLocale().toString(extent.yMaximum(), 'f', decimals)
-
         self.iface.messageBar().pushMessage(
             "Title",
-            "You selected extent: ({0}; {1}; {2}; {3};)".format(
-                x_min, x_max, y_min, y_max),
+            "You selected extent: ({0})".format(extent.asWktPolygon()),
             level=Qgis.Success,
             duration=10
         )
-
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
