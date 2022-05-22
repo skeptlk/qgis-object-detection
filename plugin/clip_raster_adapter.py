@@ -14,6 +14,7 @@ from qgis.core import (QgsMessageLog,
                        QgsProcessingOutputPointCloudLayer,
                        QgsProcessingOutputMapLayer,
                        QgsProcessingOutputMultipleLayers,
+                       QgsProcessingParameterRasterDestination,
                        QgsProcessingFeedback,
                        QgsProcessingContext,
                        QgsRuntimeProfiler,
@@ -36,10 +37,11 @@ class ClipRasterAdapter():
         if context.feedback() is None:
             context.setFeedback(feedback)
         alg = ClipRaster()
+        output = QgsProcessingParameterRasterDestination('OUTPUT').generateTemporaryDestination()
         parameters = {
             'PROJWIN': extent,
             'INPUT': input,
-            'OUTPUT': '/tmp/processing_PPVsGu/7fd413fb3475432395ec9056ca8b65cc/OUTPUT.tif',
+            'OUTPUT': output,
             'OVERCRS': True
         }
         ret, results = execute(alg, parameters, context,
