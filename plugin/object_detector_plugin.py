@@ -16,24 +16,24 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QVariant, QUrl
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QVariant, Qt
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkAccessManager
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QDockWidget
 from qgis.core import QgsProject, Qgis, QgsRectangle, QgsCoordinateTransform, \
     QgsVectorLayer, QgsFeature, QgsGeometry, QgsField, \
     QgsNetworkAccessManager, QgsNetworkReplyContent, \
     QgsTask, QgsApplication, QgsMessageLog
 from qgis.gui import QgisInterface, QgsMapToolExtent
-from .detector_http_provider import DetectorHttpProvider
-from .clip_raster_adapter import ClipRasterAdapter
+import os.path
 
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
+from .dialogs.detection_dock_widget import DetectionDockWidget
 from .dialogs.export_layer_dialog import ExportLayerDialog
-import os.path
-
+from .detector_http_provider import DetectorHttpProvider
+from .clip_raster_adapter import ClipRasterAdapter
 
 class ObjectDetectorPlugin:
     """QGIS Plugin Implementation."""
@@ -160,6 +160,14 @@ class ObjectDetectorPlugin:
             text=self.tr(u'Select an area'),
             callback=self.set_input_extent_from_draw_on_canvas,
             parent=self.iface.mainWindow())
+    
+        # self.dock = QDockWidget('Feature Templates', self.iface.mainWindow())
+        self.dock = DetectionDockWidget(parent=self.iface.mainWindow())
+        self.iface.addDockWidget(
+            Qt.LeftDockWidgetArea, 
+            self.dock
+        )
+        self.dock.show()
 
         # will be set False in run()
         self.first_start = True
@@ -245,6 +253,7 @@ class ObjectDetectorPlugin:
                 self.tr(u'&Object Detector'),
                 action)
             self.iface.removeToolBarIcon(action)
+        self.iface.removeDockWidget(self.dock)
 
     def run(self):
         # Create the dialog with elements (after translation) and keep reference
