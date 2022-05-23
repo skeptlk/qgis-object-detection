@@ -25,8 +25,7 @@ from qgis.core import QgsProject, Qgis, QgsRectangle, QgsCoordinateTransform, \
     QgsNetworkAccessManager, QgsNetworkReplyContent, \
     QgsTask, QgsApplication, QgsMessageLog
 from qgis.gui import QgisInterface, QgsMapToolExtent
-from time import sleep
-
+from .detector_http_provider import DetectorHttpProvider
 from .clip_raster_adapter import ClipRasterAdapter
 
 # Initialize Qt resources from file resources.py
@@ -187,22 +186,6 @@ class ObjectDetectorPlugin:
     def set_input_extent(self, extent: QgsRectangle):
         active_layer = self.iface.activeLayer()
 
-        # make post request
-        vl = QgsVectorLayer("Polygon", "buildings", "memory")
-        pr = vl.dataProvider()
-        pr.addAttributes([QgsField("id", QVariant.Int)])
-        vl.updateFields()
-
-        f = QgsFeature()
-
-        wkt = extent.asWktPolygon()
-        f.setGeometry(QgsGeometry.fromWkt(wkt))
-        f.setAttributes([1])
-
-        pr.addFeature(f)
-        vl.updateExtents()
-        QgsProject.instance().addMapLayer(vl)
-
         # crop extent
         map_crs = self.iface.mapCanvas().mapSettings().destinationCrs()
         ct = QgsCoordinateTransform(
@@ -215,58 +198,40 @@ class ObjectDetectorPlugin:
 
         # todo: check that raster layer is selected
         res = ClipRasterAdapter.run(extent, active_layer)
-
-        self.clipped_raster_path = res['OUTPUT']
+        clipped_raster_path = res['OUTPUT']
         
-        self.detect_task = QgsTask.fromFunction(u"detect", self.detect, on_finished=self.completed, wait_time=4)
-        # todo: write a class for a task or try to figure out why function not working
-        QgsApplication.taskManager().addTask(self.detect_task)
-        # self.detect(clipped_raster_path)
+        # self.detect_task = QgsTask.fromFunction(
+            # u"detect", 
+            # self.detect, 
+            # on_finished=self.completed, 
+            # wait_time=4)
+        # QgsApplication.taskManager().addTask(self.detect_task)
 
-    def detect(self, task, wait_time):
-        try:
-            QgsMessageLog.logMessage("DETECT!!!!!!: ")
-            filepath = self.clipped_raster_path
-            # todo: make separate class to talk to server
-            
-            # todo: handle file open error
-            file = open(filepath, 'rb')
-            
-            url = "http://localhost:5000/api/v0/detect"
-            self.net_manager = QNetworkAccessManager()
-            request = QNetworkRequest(QUrl(url))
+        # todo: limit size of raster to send to server
+        self.provider = DetectorHttpProvider(
+            clipped_raster_path, 
+            on_finish=self.render_detections
+        )
+        self.provider.post_raster()
 
-            bound = b"output"
-            
-            data = bytearray()
-            data += b'--' + bound + b'\r\n'
-            data += b'Content-Disposition: form-data; name="uploaded"; filename="output.tif"\r\n';
-            data += b'Content-Type: image/tif\r\n\r\n'
-            data += bytearray(file.read())
-            data += b'\r\n'
-            data += b'--' + bound + b'--\r\n'
-            
-            request.setRawHeader(b"Content-Type", b"multipart/form-data; boundary=" + bound)
-            request.setRawHeader(b"Content-Length", bytearray(len(data)))
-        
-            # self.net_manager.downloadProgress.connect(self.upload_pulse)
-            
-            QgsMessageLog.logMessage("before post ")
-            self.net_manager.finished.connect(self.completed)
-            self.reply = self.net_manager.post(request, data)
-            QgsMessageLog.logMessage(str(self.reply.isRunning()))
-            
-        except Exception as inst:
-            QgsMessageLog.logMessage("error here: " + str(inst), level=Qgis.Critical)
+    def render_detections(self, detections):
+        vl = QgsVectorLayer("Polygon", "buildings", "memory")
+        pr = vl.dataProvider()
+        pr.addAttributes([QgsField("id", QVariant.Int)])
+        vl.updateFields()
 
-    def completed(self):
-        QgsMessageLog.logMessage("completed!")
+        feature = QgsFeature()
 
-    def upload_pulse(self, requestId, bytesReceived, bytesTotal):
-        pass
+        wkt = self.extent.asWktPolygon()
+        feature.setGeometry(QgsGeometry.fromWkt(wkt))
+        feature.setAttributes([1])
+
+        pr.addFeature(feature)
+        vl.updateExtents()
+        QgsProject.instance().addMapLayer(vl)
+
 
     def show_extent_message(self, extent: QgsRectangle):
-        # get dimensions of extent
         self.iface.messageBar().pushMessage(
             "Title",
             "You selected extent: ({0})".format(extent.asWktPolygon()),
