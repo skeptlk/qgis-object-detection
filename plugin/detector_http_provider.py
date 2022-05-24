@@ -8,6 +8,7 @@ class DetectorHttpProvider():
   DETECT_PATH = '/api/v0/detect'
   
   progress = 0.0
+  progressBar = None
   
   def __init__(self, raster_path: str, on_finish):
     self.raster_path = raster_path
@@ -42,10 +43,11 @@ class DetectorHttpProvider():
   def post_raster_upload_progress(self, sent: int, total: int):
     if total > 0:
       self.progress = 100.0 * sent / total
+      if (self.progressBar is not None):
+        self.progressBar.setValue(int(self.progress))
       QgsMessageLog.logMessage("HTTP provider: sent {} of {} bytes".format(sent, total))
     
   def post_raster_finished(self):
     self.on_finish(self.reply.readAll())
     QgsMessageLog.logMessage("HTTP provider: completed!")
-    
     

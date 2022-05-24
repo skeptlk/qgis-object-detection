@@ -19,3 +19,6 @@ class DetectionDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         self.setObjectName("DetectionDockWidget")
         self.setWindowTitle("Object detector")
         self.setFixedHeight(200)
+        
+    def get_progress_bar(self):
+        return self.progressBar

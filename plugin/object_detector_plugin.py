@@ -220,6 +220,7 @@ class ObjectDetectorPlugin:
             clipped_raster_path, 
             on_finish=self.render_detections
         )
+        self.provider.progressBar = self.dock.get_progress_bar()
         self.provider.post_raster()
 
     def render_detections(self, detections):
@@ -253,6 +254,7 @@ class ObjectDetectorPlugin:
                 self.tr(u'&Object Detector'),
                 action)
             self.iface.removeToolBarIcon(action)
+        self.dock.hide()
         self.iface.removeDockWidget(self.dock)
 
     def run(self):
