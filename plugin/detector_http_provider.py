@@ -1,6 +1,5 @@
-from qgis.core import QgsTask, QgsMessageLog, Qgis, \
-  QgsNetworkAccessManager, QgsNetworkReplyContent
-from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkAccessManager, QNetworkReply
+from qgis.core import QgsTask, QgsMessageLog, Qgis
+from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from qgis.PyQt.QtCore import QUrl
 
 class DetectorHttpProvider():

@@ -14,9 +14,9 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 class DetectionDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
     def __init__(self, parent=None):
-        super().__init__(parent=parent)
+        super(DetectionDockWidget, self).__init__(parent=parent)
         self.setupUi(self)
-        self.setObjectName("DetectionDockWidget")
+        self.setObjectName("MyDetectionDockWidgetTest")
         self.setWindowTitle("Object detector")
         self.setFixedHeight(200)
         

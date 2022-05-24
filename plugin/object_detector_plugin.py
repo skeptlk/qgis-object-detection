@@ -148,7 +148,7 @@ class ObjectDetectorPlugin:
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-
+        QgsMessageLog.logMessage("Init gui!")    
         self.add_action(
             ':/plugins/object_detector_plugin/icon.png',
             text=self.tr(u'Detect objects'),
@@ -163,7 +163,8 @@ class ObjectDetectorPlugin:
     
         # self.dock = QDockWidget('Feature Templates', self.iface.mainWindow())
         self.dock = DetectionDockWidget(parent=self.iface.mainWindow())
-        self.iface.addDockWidget(
+        self.dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.iface.mainWindow().addDockWidget(
             Qt.LeftDockWidgetArea, 
             self.dock
         )
@@ -248,14 +249,16 @@ class ObjectDetectorPlugin:
         )
 
     def unload(self):
-        """Removes the plugin menu item and icon from QGIS GUI."""
+        """Removes the plugin menu item and icon from QGIS GUI."""        
         for action in self.actions:
             self.iface.removePluginRasterMenu(
                 self.tr(u'&Object Detector'),
                 action)
             self.iface.removeToolBarIcon(action)
-        self.dock.hide()
-        self.iface.removeDockWidget(self.dock)
+        
+        self.iface.mainWindow().removeDockWidget(self.dock)
+        self.dock.deleteLater()
+        self.dock = None
 
     def run(self):
         # Create the dialog with elements (after translation) and keep reference
