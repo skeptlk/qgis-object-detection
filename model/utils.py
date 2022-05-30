@@ -2,6 +2,8 @@ from rasterio import Affine, MemoryFile
 from rasterio.enums import Resampling
 from contextlib import contextmanager
 import numpy as np
+import tensorflow as tf
+from keras import backend as K
 import re
 
 
@@ -83,3 +85,11 @@ def normalize_colors(img):
     img_norm = img_norm.swapaxes(0, 1)
     img_norm = img_norm.swapaxes(1, 2)
     return img_norm
+
+def mean_iou(y_true, y_pred):
+    yt0 = y_true[:,:,:,0]
+    yp0 = K.cast(y_pred[:,:,:,0] > 0.5, 'float32')
+    inter = tf.math.count_nonzero(tf.math.logical_and(tf.equal(yt0, 1), tf.math.equal(yp0, 1)))
+    union = tf.math.count_nonzero(tf.math.add(yt0, yp0))
+    iou = tf.where(tf.equal(union, 0), 1., tf.cast(inter/union, 'float32'))
+    return iou
