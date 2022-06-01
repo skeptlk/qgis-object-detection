@@ -1,4 +1,4 @@
-from models import unet
+from .models import unet
 
 
 class UnetDetector():
