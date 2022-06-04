@@ -1,4 +1,5 @@
 from flask import Request, Flask, redirect
+from model.unet_detector import UnetDetector
 import os
 
 
@@ -8,5 +9,12 @@ def detect_handler(app: Flask, request: Request):
   file = request.files['uploaded']
   if file.filename == '':
     return redirect('/')
-  if file:
-    file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
+  if file is None:
+    return redirect('/')
+  saved_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+  file.save(saved_path)
+  detector = app.extensions['BUILDING_DETECT_MODEL']
+  wkt = detector.detect(saved_path)
+  app.logger.info("Here: " + str(wkt.mean()))
+  return "Here: " + str(wkt.mean())
+

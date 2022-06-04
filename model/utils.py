@@ -71,6 +71,26 @@ def normalize(x, lower, upper):
     return x_norm
 
 
+def pad_image(img):
+  width, height, n = img.shape
+  out_width, out_height = (512, 512)
+  return np.pad(
+      img, 
+      ((0, out_width - width), (0, out_height - height), (0, 0)),
+      'constant',
+      constant_values=(0)
+  )
+
+
+def crop_image(img):
+  out_width, out_height = (512, 512)
+  img = img[:out_width, :out_height, :]
+  w, h, n = img.shape
+  if (w < out_width or h < out_height):
+    img = pad_image(img)
+  return img
+
+
 def normalize_colors(img):
     img_norm = []
     for i in range(img.shape[0]):
@@ -85,6 +105,7 @@ def normalize_colors(img):
     img_norm = img_norm.swapaxes(0, 1)
     img_norm = img_norm.swapaxes(1, 2)
     return img_norm
+
 
 def mean_iou(y_true, y_pred):
     yt0 = y_true[:,:,:,0]
