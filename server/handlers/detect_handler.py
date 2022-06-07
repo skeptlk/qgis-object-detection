@@ -14,7 +14,8 @@ def detect_handler(app: Flask, request: Request):
   saved_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
   file.save(saved_path)
   detector = app.extensions['BUILDING_DETECT_MODEL']
-  wkt = detector.detect(saved_path)
-  app.logger.info("Here: " + str(wkt.mean()))
-  return "Here: " + str(wkt.mean())
+  wkt = detector.detect(saved_path, app)
 
+  return wkt
+
+ 

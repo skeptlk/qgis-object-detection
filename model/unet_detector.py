@@ -1,19 +1,50 @@
 from PIL import Image
+from server.utils.wkt_helpers import get_wkt_multipolygons
+from model.regularization.boundary_regularization import boundary_regularization
 from model.utils import crop_image, normalize_colors
 from model.models import unet
 import rasterio
 import numpy as np
 import random
+import cv2
 import os
+
 
 class UnetDetector():
   def __init__(self) -> None:
     self.model = unet()
     self.model.load_weights(os.environ['UNET_WEIGHTS_FILE'])
+
+  def georeference_contours(self, contours: list, transform: rasterio.Affine) -> list:
+    ref_contours = []
+    for contour in contours:
+      ref_c = []
+      for (x, y) in contour:
+        px, py = rasterio.transform.xy(transform, y, x, offset='center')
+        ref_c.append([px, py])
+      ref_contours.append(ref_c)
+
+    return ref_contours
     
-  def mask_to_wkt(self, mask) -> str:
-    return mask
-    return "POLYGON ((533193.1015783922 174038.23070064266, 533193.0385603837 174038.41525338194, 533194.6229692716 174038.95627105064, 533194.6983712668 174038.7354509218, 533194.879708215 174038.79737085517, 533195.0604846688 174038.26795409713, 533193.0052700456 174037.56617349468, 533192.8121096052 174038.1318576422, 533193.1015783922 174038.23070064266))"
+  def mask_to_wkt(self, mask, transform: rasterio.Affine) -> str:
+    mask2 = cv2.medianBlur(mask, 5)
+    mask2 = cv2.cvtColor(mask2, cv2.COLOR_BGR2GRAY)
+    ret, mask2 = cv2.threshold(mask2, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask2, connectivity=8)
+    contours = []
+    for i in range(1, num_labels):
+      img = np.zeros_like(labels)
+      index = np.where(labels==i)
+      img[index] = 255
+      img = np.array(img, dtype=np.uint8)
+
+      regularization_contour = boundary_regularization(img).astype(np.int32)
+      contours.append(regularization_contour)
+
+    contours = self.georeference_contours(contours, transform)
+    
+    return get_wkt_multipolygons(contours)
 
   def prediction_to_mask(self, prediction):
     msk = prediction.squeeze()
@@ -25,15 +56,17 @@ class UnetDetector():
   def prepare_image(self, raw):
     # normalize colors
     np_norm = normalize_colors(raw.read([1,2,3]))
-    # for now we don't rescale, just fit image in 512x512 square
+    # for now just fit image in 512x512 square
     return crop_image(np_norm)
 
-  def detect(self, filename):
+  def detect(self, filename, app):
+    self.app = app
     tif = rasterio.open(filename)
     img = self.prepare_image(tif)
     pred = self.model.predict(np.expand_dims(img, 0))
     mask = self.prediction_to_mask(pred)
     mask[mask == 1] = 255
+    # save for debug
     im = Image.fromarray(mask)
     im.save("uploads/" + str(random.randrange(1000, 9999)) + ".png")
-    return self.mask_to_wkt(mask)
+    return self.mask_to_wkt(mask, tif.transform)

@@ -101,9 +101,7 @@ def normalize_colors(img):
         band = stretch_min_max(img[i], min, max)
         img_norm.append(band)
     img_norm = np.array(img_norm)
-    img_norm = img_norm.astype("uint8")
-    img_norm = img_norm.swapaxes(0, 1)
-    img_norm = img_norm.swapaxes(1, 2)
+    img_norm = img_norm.astype("uint8").swapaxes(0, 1).swapaxes(1, 2)
     return img_norm
 
 

@@ -16,7 +16,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QVariant, Qt
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QByteArray
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from qgis.PyQt.QtWidgets import QAction, QDockWidget
@@ -148,7 +148,7 @@ class ObjectDetectorPlugin:
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-        QgsMessageLog.logMessage("Init gui!")    
+        QgsMessageLog.logMessage("Init gui!")
         self.add_action(
             ':/plugins/object_detector_plugin/icon.png',
             text=self.tr(u'Detect objects'),
@@ -224,29 +224,21 @@ class ObjectDetectorPlugin:
         self.provider.progressBar = self.dock.get_progress_bar()
         self.provider.post_raster()
 
-    def render_detections(self, detections):
-        vl = QgsVectorLayer("Polygon", "buildings", "memory")
+    def render_detections(self, detections_wkt: QByteArray):
+        vl = QgsVectorLayer("Polygon", "detected_buildings", "memory")
+        vl.setCrs(QgsProject.instance().crs())
         pr = vl.dataProvider()
-        pr.addAttributes([QgsField("id", QVariant.Int)])
-        vl.updateFields()
 
         feature = QgsFeature()
-
-        wkt = self.extent.asWktPolygon()
-        feature.setGeometry(QgsGeometry.fromWkt(wkt))
-        feature.setAttributes([1])
-
+        feature.setGeometry(QgsGeometry.fromWkt(detections_wkt.data().decode("utf-8")))
         pr.addFeature(feature)
-        vl.updateExtents()
+
+        # vl.updateExtents()
         QgsProject.instance().addMapLayer(vl)
 
-
     def show_extent_message(self, extent: QgsRectangle):
-        self.iface.messageBar().pushMessage(
-            "Title",
-            "You selected extent: ({0})".format(extent.asWktPolygon()),
-            level=Qgis.Success
-        )
+        message = "You selected extent: ({0})".format(extent.asWktPolygon())
+        self.iface.messageBar().pushMessage("", message, level=Qgis.Success)
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""        

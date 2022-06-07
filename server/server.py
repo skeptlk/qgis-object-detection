@@ -2,7 +2,7 @@
 from flask import Flask, request, redirect
 import os
 from model.unet_detector import UnetDetector
-from handlers.detect_handler import detect_handler
+from server.handlers.detect_handler import detect_handler
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
