@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>200</width>
-    <height>200</height>
+    <height>226</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,9 +16,25 @@
   <widget class="QWidget" name="dockWidgetContents">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QPushButton" name="pushButton">
+     <widget class="QListView" name="detectionTypesListView">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+        <horstretch>0</horstretch>
+        <verstretch>1</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>1</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="label">
       <property name="text">
-       <string>Cancel</string>
+       <string>Detection progress:</string>
       </property>
      </widget>
     </item>
@@ -28,6 +44,26 @@
        <number>0</number>
       </property>
      </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="cancelButton">
+      <property name="text">
+       <string>Cancel</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
     </item>
    </layout>
   </widget>

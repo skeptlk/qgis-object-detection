@@ -12,7 +12,7 @@ import os
 
 class UnetDetector():
   def __init__(self) -> None:
-    self.model = unet()
+    self.model = unet((640, 640, 3))
     self.model.load_weights(os.environ['UNET_WEIGHTS_FILE'])
 
   def georeference_contours(self, contours: list, transform: rasterio.Affine) -> list:
@@ -49,15 +49,16 @@ class UnetDetector():
   def prediction_to_mask(self, prediction):
     msk = prediction.squeeze()
     msk = np.stack((msk,)*3, axis=-1)
-    msk[msk >= 0.5] = 1 
-    msk[msk < 0.5] = 0 
+    thresh = 0.4
+    msk[msk >= thresh] = 1 
+    msk[msk < thresh] = 0 
     return msk.astype("uint8")
 
   def prepare_image(self, raw):
     # normalize colors
     np_norm = normalize_colors(raw.read([1,2,3]))
-    # for now just fit image in 512x512 square
-    return crop_image(np_norm)
+    # for now just fit image in square
+    return crop_image(np_norm, out_shape = (640, 640))
 
   def detect(self, filename, app):
     self.app = app

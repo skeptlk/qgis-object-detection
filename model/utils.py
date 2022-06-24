@@ -71,9 +71,9 @@ def normalize(x, lower, upper):
     return x_norm
 
 
-def pad_image(img):
+def pad_image(img, out_shape=(512, 512)):
   width, height, n = img.shape
-  out_width, out_height = (512, 512)
+  out_width, out_height = out_shape
   return np.pad(
       img, 
       ((0, out_width - width), (0, out_height - height), (0, 0)),
@@ -82,12 +82,12 @@ def pad_image(img):
   )
 
 
-def crop_image(img):
-  out_width, out_height = (512, 512)
+def crop_image(img, out_shape=(512, 512)):
+  out_width, out_height = out_shape
   img = img[:out_width, :out_height, :]
   w, h, n = img.shape
   if (w < out_width or h < out_height):
-    img = pad_image(img)
+    img = pad_image(img, out_shape)
   return img
 
 
