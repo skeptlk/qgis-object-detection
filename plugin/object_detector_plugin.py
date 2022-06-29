@@ -161,8 +161,10 @@ class ObjectDetectorPlugin:
             callback=self.set_input_extent_from_draw_on_canvas,
             parent=self.iface.mainWindow())
     
-        # self.dock = QDockWidget('Feature Templates', self.iface.mainWindow())
-        self.dock = DetectionDockWidget(parent=self.iface.mainWindow())
+        self.dock = DetectionDockWidget(
+            parent=self.iface.mainWindow(),
+            detect_cb=self.set_input_extent_from_draw_on_canvas
+        )
         self.dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.iface.mainWindow().addDockWidget(
             Qt.LeftDockWidgetArea, 

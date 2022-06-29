@@ -11,7 +11,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'detection_dock_widget.ui'))
 
 class DetectionDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, detect_cb=None):
         super(DetectionDockWidget, self).__init__(parent=parent)
         self.setupUi(self)
         self.setObjectName("MyDetectionDockWidgetTest123")
@@ -36,6 +36,9 @@ class DetectionDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             model.appendRow(item)
 
         self.detectionTypesListView.setModel(model)
+        
+        self.detectButton.clicked.connect(detect_cb)
+
         
     def get_progress_bar(self):
         return self.progressBar
